@@ -846,6 +846,15 @@ document.addEventListener("click", e=>{
   if(e.target.closest("#btnScan")){ runScan(); }
 });
 
+/* 埋め込み時に施設名・初期言語を差し替える（widget.js が ?inn= ?lang= を渡す）。
+   textContent 経由でしか描画しないので、値のエスケープは不要。 */
+(function(){
+  var qp = new URLSearchParams(location.search);
+  var qLang = qp.get("lang"), qInn = qp.get("inn");
+  if (qLang && I18N[qLang]) lang = qLang;
+  if (qInn) Object.keys(I18N).forEach(function(k){ I18N[k].title = qInn; });  // 宿名は固有名詞
+})();
+
 buildLangs();
 render();
 go("home");
