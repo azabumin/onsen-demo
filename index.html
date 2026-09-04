@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>湯の音旅館 — 多言語コンシェルジュ（デモ）</title>
+<style>
+:root{
+  --ink:#241f1c; --ink-2:#5b524c; --ink-3:#8d837c;
+  --paper:#f7f4ef; --card:#fffdfa; --line:#e3dbd1;
+  --indigo:#2f4858; --indigo-soft:#e8eef1;
+  --accent:#8c6239; --accent-soft:#f3ece3;
+  --warn:#a8442a; --warn-soft:#fbeeea;
+  --ok:#3f6b4f; --ok-soft:#ecf3ee;
+  --shadow:0 1px 2px rgba(36,31,28,.06),0 8px 24px rgba(36,31,28,.07);
+  --r:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"Meiryo","メイリオ","Malgun Gothic","맑은 고딕","Hiragino Sans",
+              "Noto Sans JP","Yu Gothic UI",system-ui,-apple-system,sans-serif;
+  font-size:15px; line-height:1.75; letter-spacing:.01em;
+  -webkit-font-smoothing:antialiased;
+}
+.app{max-width:430px;margin:0 auto;min-height:100vh;background:var(--paper);
+     box-shadow:0 0 60px rgba(36,31,28,.07);position:relative;padding-bottom:88px}
+
+/* ── demo badge ─────────────────────────── */
+.demo-bar{background:var(--indigo);color:#f2f6f8;font-size:11px;letter-spacing:.06em;
+  text-align:center;padding:6px 12px;position:sticky;top:0;z-index:50}
+.demo-bar b{font-weight:700}
+
+/* ── header ─────────────────────────────── */
+header{padding:20px 20px 16px;border-bottom:1px solid var(--line);background:var(--card)}
+.brandrow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.mark{font-size:11px;letter-spacing:.22em;color:var(--accent);text-transform:uppercase}
+h1{margin:2px 0 0;font-size:19px;font-weight:700;letter-spacing:.02em}
+.sub{margin:4px 0 0;font-size:12px;color:var(--ink-3)}
+.langs{display:flex;gap:4px;flex-wrap:wrap;margin-top:14px}
+.lang{border:1px solid var(--line);background:var(--card);color:var(--ink-2);
+  border-radius:999px;padding:5px 11px;font-size:12px;cursor:pointer;font-family:inherit;
+  transition:.15s}
+.lang:hover{border-color:var(--accent)}
+.lang[aria-pressed="true"]{background:var(--indigo);color:#fff;border-color:var(--indigo)}
+
+/* ── screens ────────────────────────────── */
+main{padding:18px 16px 24px}
+.screen{display:none;animation:fade .28s ease}
+.screen.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.lead{font-size:13px;color:var(--ink-2);margin:0 0 16px}
+
+/* ── tiles ──────────────────────────────── */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:16px 14px;text-align:left;cursor:pointer;font-family:inherit;color:inherit;
+  box-shadow:var(--shadow);transition:.15s;display:flex;flex-direction:column;gap:8px;min-height:112px}
+.tile:hover{transform:translateY(-2px);border-color:var(--accent)}
+.tile .ic{font-size:22px;line-height:1}
+.tile .t{font-size:14px;font-weight:700;line-height:1.4}
+.tile .d{font-size:11px;color:var(--ink-3);line-height:1.5}
+
+/* ── generic card ───────────────────────── */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:16px;box-shadow:var(--shadow);margin-bottom:12px}
+.card h2{margin:0 0 10px;font-size:15px;font-weight:700}
+.card h3{margin:16px 0 6px;font-size:12px;font-weight:700;color:var(--ink-3);
+  letter-spacing:.08em;text-transform:uppercase}
+
+/* ── back ───────────────────────────────── */
+.back{background:none;border:none;color:var(--ink-3);font-size:13px;cursor:pointer;
+  padding:0 0 12px;font-family:inherit;display:flex;align-items:center;gap:6px}
+.back:hover{color:var(--accent)}
+
+/* ── buttons ────────────────────────────── */
+.btn{width:100%;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:.15s}
+.btn-primary{background:var(--indigo);color:#fff}
+.btn-primary:hover{background:#22353f}
+.btn-ghost{background:var(--card);border:1px solid var(--line);color:var(--ink-2);font-weight:400;font-size:14px}
+.btn-ghost:hover{border-color:var(--accent)}
+.btn+.btn{margin-top:8px}
+
+/* ── the "board" (温泉分析書) ───────────── */
+.board{background:#efeae1;border:1px solid #d6ccbe;border-radius:8px;padding:14px 14px 12px;
+  font-size:11px;line-height:1.85;color:#3a332d;position:relative;overflow:hidden}
+.board::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(115deg,rgba(255,255,255,.5) 0%,rgba(255,255,255,0) 40%);pointer-events:none}
+.board .bt{text-align:center;font-weight:700;font-size:13px;letter-spacing:.3em;
+  border-bottom:1px solid #c9bfae;padding-bottom:7px;margin-bottom:9px}
+.board dl{margin:0;display:grid;grid-template-columns:74px 1fr;gap:3px 8px}
+.board dt{color:#7a6f61}
+.board dd{margin:0}
+.board .note{margin-top:8px;padding-top:7px;border-top:1px dashed #c9bfae;color:#7a6f61;font-size:10px}
+
+/* ── scanning ───────────────────────────── */
+.scanwrap{position:relative}
+.scanline{position:absolute;left:0;right:0;height:2px;background:var(--accent);
+  box-shadow:0 0 12px 2px rgba(140,98,57,.5);animation:scan 1.1s ease-in-out infinite;border-radius:2px}
+@keyframes scan{0%{top:4%}50%{top:94%}100%{top:4%}}
+.status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);margin-top:12px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
+
+/* ── result rows ────────────────────────── */
+.kv{display:grid;grid-template-columns:88px 1fr;gap:6px 10px;font-size:13px}
+.kv dt{color:var(--ink-3);font-size:12px}
+.kv dd{margin:0}
+.orig{display:block;font-size:11px;color:var(--ink-3);margin-top:2px;line-height:1.5}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.chip{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--indigo-soft);
+  color:var(--indigo);white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+
+/* ── verdicts ───────────────────────────── */
+.verdict{border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid;display:flex;gap:11px}
+.verdict .vi{font-size:18px;line-height:1.3;flex-shrink:0}
+.verdict .vt{font-size:14px;font-weight:700;margin:0 0 3px}
+.verdict .vd{font-size:12.5px;line-height:1.65;margin:0}
+.v-warn{background:var(--warn-soft);border-color:#e8c4b8;color:#7d3320}
+.v-ok{background:var(--ok-soft);border-color:#c4d8ca;color:#2e5a3d}
+.v-info{background:var(--indigo-soft);border-color:#c8d6dd;color:#26404e}
+
+/* ── condition toggles ──────────────────── */
+.conds{display:flex;flex-wrap:wrap;gap:7px}
+.cond{border:1px solid var(--line);background:var(--card);border-radius:999px;
+  padding:8px 13px;font-size:12.5px;cursor:pointer;font-family:inherit;color:var(--ink-2);transition:.15s}
+.cond:hover{border-color:var(--accent)}
+.cond[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ── steps ──────────────────────────────── */
+.steps{list-style:none;margin:0;padding:0;counter-reset:s}
+.steps li{counter-increment:s;padding:12px 0 12px 40px;border-bottom:1px solid var(--line);
+  position:relative;font-size:13.5px;line-height:1.65}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:12px;width:25px;height:25px;
+  border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700;
+  display:flex;align-items:center;justify-content:center}
+.steps b{display:block;font-size:13.5px;margin-bottom:1px}
+.steps span{color:var(--ink-3);font-size:12px}
+
+/* ── QA ─────────────────────────────────── */
+.qa{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:8px;background:var(--card)}
+.qa summary{padding:13px 14px;cursor:pointer;font-size:13.5px;font-weight:700;list-style:none;
+  display:flex;justify-content:space-between;gap:10px;align-items:center}
+.qa summary::-webkit-details-marker{display:none}
+.qa summary::after{content:"＋";color:var(--ink-3);font-size:14px;flex-shrink:0}
+.qa[open] summary::after{content:"−"}
+.qa .ans{padding:0 14px 14px;font-size:13px;color:var(--ink-2);line-height:1.75;
+  border-top:1px solid var(--line);padding-top:12px;margin-top:-1px}
+
+/* ── disclaimer ─────────────────────────── */
+.disc{font-size:11px;color:var(--ink-3);line-height:1.7;background:var(--card);
+  border:1px dashed var(--line);border-radius:10px;padding:11px 13px;margin-top:14px}
+
+/* ── bottom nav ─────────────────────────── */
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;
+  background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);
+  padding:8px 4px calc(8px + env(safe-area-inset-bottom));z-index:40}
+.nav button{background:none;border:none;font-family:inherit;cursor:pointer;color:var(--ink-3);
+  font-size:10.5px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px}
+.nav button .ni{font-size:17px;line-height:1}
+.nav button[aria-pressed="true"]{color:var(--accent);font-weight:700}
+footer{padding:16px;text-align:center;font-size:10.5px;color:var(--ink-3);line-height:1.7}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="demo-bar"><b id="demoBadge">デモ版</b> — <span id="demoNote">AIの応答はサンプル固定です（実機はライブ生成）</span></div>
+
+  <header>
+    <div class="brandrow">
+      <div>
+        <div class="mark">Onsen Concierge</div>
+        <h1 id="hTitle">湯の音旅館</h1>
+        <p class="sub" id="hSub">客室QRからご案内しています（架空の施設です）</p>
+      </div>
+    </div>
+    <div class="langs" id="langs"></div>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <section class="screen on" id="s-home">
+      <p class="lead" id="homeLead"></p>
+      <div class="tiles" id="tiles"></div>
+      <div class="disc" id="homeDisc"></div>
+    </section>
+
+    <!-- ANALYSIS -->
+    <section class="screen" id="s-scan">
+      <button class="back" data-go="home">← <span data-t="back"></span></button>
+      <div class="card">
+        <h2 data-t="scanTitle"></h2>
+        <p class="lead" style="margin-bottom:14px" data-t="scanLead"></p>
+        <div class="scanwrap" id="scanwrap">
+          <div class="board" id="board"></div>
+        </div>
+        <div id="scanStatus"></div>
+        <button class="btn btn-primary" id="btnScan" style="margin-top:14px" data-t="scanBtn"></button>
+      </div>
+      <div id="scanResult"></div>
+    </section>
+
+    <!-- TATTOO -->
+    <section class="screen" id="s-tattoo">
+      <button class="back" data-go="home">← <span data-t="back"></span></button>
+      <div id="tattooBody"></div>
+    </section>
+
+    <!-- MANNERS -->
+    <section class="screen" id="s-manner">
+      <button class="back" data-go="home">← <span data-t="back"></span></button>
+      <div class="card">
+        <h2 data-t="mannerTitle"></h2>
+        <ol class="steps" id="mannerSteps"></ol>
+      </div>
+      <div id="mannerNg"></div>
+    </section>
+
+    <!-- FACILITY -->
+    <section class="screen" id="s-info">
+      <button class="back" data-go="home">← <span data-t="back"></span></button>
+      <div class="card"><h2 data-t="infoTitle"></h2>
+        <p class="lead" style="margin:0" data-t="infoLead"></p></div>
+      <div id="infoQa"></div>
+    </section>
+
+    <!-- PROFILE -->
+    <section class="screen" id="s-me">
+      <button class="back" data-go="home">← <span data-t="back"></span></button>
+      <div class="card">
+        <h2 data-t="meTitle"></h2>
+        <p class="lead" data-t="meLead"></p>
+        <div class="conds" id="conds"></div>
+      </div>
+      <div class="disc" data-t="meDisc"></div>
+    </section>
+  </main>
+
+  <nav class="nav" id="nav"></nav>
+  <footer id="foot"></footer>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   湯の音旅館 — 多言語温泉コンシェルジュ（営業デモ）
+   ・API不要 / 完全オフライン動作。商談中にネットが落ちても止まらない。
+   ・分析結果は固定サンプル。本番は Claude Vision で実写を構造化する。
+   ・施設は架空。実在の旅館の情報は一切含まない。
+   ============================================================ */
+
+/* ---- 温泉分析書（架空・様式は温泉法第18条の掲示義務項目に準拠） ---- */
+const BOARD = {
+  source:"湯の音源泉 １号井",
+  quality:"単純硫黄温泉（硫化水素型・低張性アルカリ性高温泉）",
+  temp:"58.2 ℃",
+  ph:"8.4",
+  yield:"毎分 210 L（自噴）",
+  date:"令和7年4月11日 分析",
+  indications:["神経痛","筋肉痛","関節痛","五十肩","慢性皮膚病","アトピー性皮膚炎","冷え性","疲労回復","糖尿病"],
+  contra:["急性疾患","活動性の結核","悪性腫瘍","重い心臓病","呼吸不全","腎不全","出血性疾患","高度の貧血","妊娠中（特に初期と末期）","皮膚・粘膜の過敏な方"],
+  treatment:{ water:"あり（源泉が高温のため）", heat:"なし", circ:"なし（かけ流し）", disinfect:"なし" }
+};
+
+/* ---- 施設のタトゥー方針（架空）---- */
+const TATTOO = { policy:"conditional", coverSize:"12cm × 8cm", privateBath:"無料・予約制（45分）" };
+
+/* ---- 掲示用語の対訳 --------------------------------------------
+   本番では Claude が抽出と同時に訳す。デモでは辞書で固定。
+   環境省の泉質10分類・一般的適応症/禁忌症は語彙が閉じているため、
+   実装上も「よく出る語は辞書、それ以外はモデル訳」の併用が現実的。
+   ---------------------------------------------------------------- */
+const TERMS = {
+  "神経痛":            {ko:"신경통",              en:"Neuralgia",                     zh:"神經痛"},
+  "筋肉痛":            {ko:"근육통",              en:"Muscle pain",                   zh:"肌肉痠痛"},
+  "関節痛":            {ko:"관절통",              en:"Joint pain",                    zh:"關節痛"},
+  "五十肩":            {ko:"오십견",              en:"Frozen shoulder",               zh:"五十肩"},
+  "慢性皮膚病":        {ko:"만성 피부병",         en:"Chronic skin conditions",       zh:"慢性皮膚病"},
+  "アトピー性皮膚炎":  {ko:"아토피성 피부염",     en:"Atopic dermatitis",             zh:"異位性皮膚炎"},
+  "冷え性":            {ko:"냉증",                en:"Poor circulation",              zh:"手腳冰冷"},
+  "疲労回復":          {ko:"피로 회복",           en:"Fatigue recovery",              zh:"消除疲勞"},
+  "糖尿病":            {ko:"당뇨병",              en:"Diabetes",                      zh:"糖尿病"},
+  "急性疾患":          {ko:"급성 질환",           en:"Acute illness",                 zh:"急性疾病"},
+  "活動性の結核":      {ko:"활동성 결핵",         en:"Active tuberculosis",           zh:"活動性結核"},
+  "悪性腫瘍":          {ko:"악성 종양",           en:"Malignant tumours",             zh:"惡性腫瘤"},
+  "重い心臓病":        {ko:"중증 심장병",         en:"Serious heart disease",         zh:"嚴重心臟病"},
+  "呼吸不全":          {ko:"호흡부전",            en:"Respiratory failure",           zh:"呼吸衰竭"},
+  "腎不全":            {ko:"신부전",              en:"Kidney failure",                zh:"腎衰竭"},
+  "出血性疾患":        {ko:"출혈성 질환",         en:"Haemorrhagic disorders",        zh:"出血性疾病"},
+  "高度の貧血":        {ko:"고도 빈혈",           en:"Severe anaemia",                zh:"重度貧血"},
+  "妊娠中（特に初期と末期）":
+                       {ko:"임신 중(특히 초기와 말기)", en:"Pregnancy (esp. early and late)", zh:"懷孕中（尤其初期與末期）"},
+  "皮膚・粘膜の過敏な方":
+                       {ko:"피부·점막이 과민한 분",     en:"Sensitive skin or mucous membranes", zh:"皮膚、黏膜過敏者"},
+
+  "単純硫黄温泉（硫化水素型・低張性アルカリ性高温泉）":
+    {ko:"단순 유황천 (황화수소형 · 저장성 알칼리성 고온천)",
+     en:"Simple sulphur spring (hydrogen-sulphide type, hypotonic, alkaline, high-temp.)",
+     zh:"單純硫磺泉（硫化氫型・低張性鹼性高溫泉）"},
+  "毎分 210 L（自噴）":
+    {ko:"분당 210 L (자연 용출)", en:"210 L/min (natural flow)", zh:"每分 210 L（自然湧出）"},
+  "あり（源泉が高温のため）":
+    {ko:"있음 (원천이 고온이라서)", en:"Yes (source water is very hot)", zh:"有（因源泉高溫）"},
+  "なし":              {ko:"없음",                en:"No",                            zh:"無"},
+  "なし（かけ流し）":  {ko:"없음 (전량 흘려보냄)", en:"No (free-flowing)",            zh:"無（掛流）"}
+};
+/* 訳語を返す。日本語表示時と未登録語はそのまま返す。 */
+const tr = s => (lang==="ja" ? s : ((TERMS[s]||{})[lang] || s));
+/* 掲示板の前に立っている人が原文と照合できるよう、原語を小さく併記する。 */
+const orig = s => (lang==="ja" ? "" : `<span class="orig">${esc(s)}</span>`);
+
+/* ---- 利用者の条件 ---- */
+const CONDITIONS = [
+  {id:"hbp",     hits:["禁忌注意"]},
+  {id:"heart",   hits:["医師相談"]},
+  {id:"preg",    hits:["医師相談"]},
+  {id:"tattoo",  hits:["施設方針"]},
+  {id:"atopy",   hits:["適応"]},
+  {id:"diabetes",hits:["適応"]},
+  {id:"baby",    hits:["施設方針"]},
+  {id:"sensitive",hits:["禁忌注意"]}
+];
+
+/* ============================================================
+   多言語辞書
+   ============================================================ */
+const I18N = {
+ja:{
+  name:"日本語", badge:"デモ版",
+  demoNote:"AIの応答はサンプル固定です（実機はライブ生成）",
+  title:"湯の音旅館", sub:"客室QRからご案内しています（架空の施設です）",
+  homeLead:"ようこそ。お風呂のこと、館内のこと、なんでもお尋ねください。母国語でお答えします。",
+  back:"戻る",
+  nav:["ホーム","わたしの条件","館内案内"],
+  tiles:[
+    {k:"scan",   ic:"♨",  t:"温泉分析書を読む",  d:"入口の掲示を撮影 → 母国語で解説"},
+    {k:"tattoo", ic:"◆",  t:"タトゥーは入れる？", d:"当館の方針をご確認いただけます"},
+    {k:"manner", ic:"◇",  t:"入浴の作法",        d:"初めての方へ・6ステップ"},
+    {k:"info",   ic:"○",  t:"館内のご案内",      d:"食事・送迎・アメニティ"}
+  ],
+  homeDisc:"※ 本アプリは掲示内容の翻訳・整理を行うものであり、医学的な診断ではありません。体調に不安のある方は医師にご相談ください。",
+  scanTitle:"温泉分析書を読む",
+  scanLead:"浴場入口に掲示されている分析書です。撮影すると、お客様が登録された条件と照らし合わせてご説明します。",
+  scanBtn:"この掲示を読み取る", scanAgain:"もう一度読み取る",
+  scanning:"分析書を読み取っています…",
+  scanSteps:["文字を認識しています","泉質・適応症・禁忌症を抽出しています","お客様の条件と照合しています"],
+  resTitle:"読み取り結果",
+  lbl:{source:"源泉名",quality:"泉質",temp:"泉温",ph:"pH",yield:"湧出量",
+       ind:"適応症",con:"禁忌症",treat:"温泉の処理"},
+  treatLbl:{water:"加水",heat:"加温",circ:"循環ろ過",disinfect:"消毒"},
+  noCond:"条件が未登録です。「わたしの条件」で登録すると、お客様に合わせた注意点をお伝えします。",
+  goCond:"わたしの条件を登録する",
+  vd:{
+    hbp:{t:"高血圧をお持ちの方へ",d:"この温泉の禁忌症に直接の記載はありませんが、42℃以上の高温での長湯は血圧が急変することがあります。ぬるめ・短時間（10分以内）で、こまめに休憩をおとりください。"},
+    heart:{t:"心臓の疾患をお持ちの方へ",d:"掲示の禁忌症に「重い心臓病」の記載があります。ご入浴の可否は必ず主治医にご確認ください。当館では判断いたしかねます。"},
+    preg:{t:"妊娠中の方へ",d:"掲示の禁忌症に「妊娠中（特に初期と末期）」の記載があります。ご入浴前に必ず医師にご相談ください。"},
+    atopy:{t:"アトピー・慢性皮膚病の方へ",d:"適応症に「アトピー性皮膚炎」「慢性皮膚病」の記載があります。ただし硫黄泉は刺激が強いため、入浴後は真水で流し、保湿をおすすめします。"},
+    diabetes:{t:"糖尿病の方へ",d:"適応症に「糖尿病」の記載があります。ただし足先の感覚が鈍い方は、やけどにご注意ください。湯温は58.2℃の源泉を加水して調整しています。"},
+    sensitive:{t:"肌が敏感な方へ",d:"掲示の禁忌症に「皮膚・粘膜の過敏な方」の記載があります。硫黄泉は刺激が強めです。短時間から試され、異常を感じたらすぐにお上がりください。"},
+    tattoo:{t:"タトゥーがある方へ",d:"当館は条件付きで入浴いただけます。詳しくは「タトゥーは入れる？」をご覧ください。"},
+    baby:{t:"お子様連れの方へ",d:"硫黄泉は刺激が強いため、乳児（1歳未満）のご入浴はお控えください。1歳以上のお子様は短時間で、必ず保護者の方とご一緒にお願いします。"}
+  },
+  okNone:{t:"特記事項はありません",d:"登録された条件に、この温泉の禁忌症と重なるものはありませんでした。とはいえ、入浴前後の水分補給と、長湯を避けることはどなたにも共通のおすすめです。"},
+  condNames:{hbp:"高血圧",heart:"心臓の疾患",preg:"妊娠中",tattoo:"タトゥーがある",
+             atopy:"アトピー・皮膚病",diabetes:"糖尿病",baby:"乳幼児のお子様連れ",sensitive:"肌が敏感"},
+  tattooTitle:"タトゥーについて",
+  tattooLead:"当館の方針は以下のとおりです。",
+  tattooCond:{t:"条件付きで入浴いただけます",
+    d:"カバーシール（{s} 以内）を貼っていただければ、大浴場をご利用いただけます。シールはフロントで無料でお渡ししています。"},
+  tattooAlt:{t:"貸切風呂もご利用いただけます",
+    d:"サイズや枚数でシールが難しい場合は、貸切風呂（{p}）をご利用ください。タトゥーの有無にかかわらずご予約いただけます。"},
+  tattooNote:"日本では入れ墨・タトゥーの入浴可否は施設ごとに異なります。他の施設をご利用の際は、必ず事前にご確認ください。",
+  mannerTitle:"入浴の作法",
+  manner:[
+    {b:"脱衣所で全部脱ぐ",s:"水着・下着の着用はできません。貴重品はロッカーへ。"},
+    {b:"かけ湯をする",s:"湯船に入る前に、桶で足元から順にお湯をかけます。"},
+    {b:"体を洗ってから湯船へ",s:"洗い場で先に体と髪を洗います。石けんは流しきってください。"},
+    {b:"タオルは湯船に入れない",s:"頭の上に乗せるか、湯船のふちに置きます。"},
+    {b:"湯船では静かに",s:"泳ぐ・もぐる・大声はご遠慮ください。"},
+    {b:"上がる前に体を拭く",s:"脱衣所を濡らさないよう、軽く拭いてからお上がりください。"}
+  ],
+  ngTitle:"よくある間違い",
+  ng:["湯船にタオルを入れる","体を洗わずに湯船に入る","洗い場でシャワーを人に向ける","脱衣所へ濡れたまま戻る"],
+  infoTitle:"館内のご案内",
+  infoLead:"よくいただくご質問をまとめました。他のご質問は音声でもお受けします。",
+  qa:[
+    {q:"朝食は何時からですか？",a:"7:00〜9:30（最終入場9:00）、2階「山吹の間」でご用意しております。和定食と洋食からお選びいただけます。"},
+    {q:"大浴場は何時まで入れますか？",a:"5:00〜10:00 / 15:00〜24:00 です。24:00〜翌5:00は清掃のため閉鎖しております。深夜のご入浴はお部屋のお風呂をご利用ください。"},
+    {q:"駅からの送迎はありますか？",a:"最寄り駅から無料送迎バスがございます。到着30分前にフロント（内線0）までご連絡ください。最終便は21:00です。"},
+    {q:"アレルギーに対応できますか？",a:"前日までにご連絡いただければ対応いたします。そば・甲殻類・乳製品・卵は代替メニューをご用意できます。"},
+    {q:"貸切風呂の予約方法は？",a:"フロントにて当日先着順で承ります。45分間・無料です。ご家族やタトゥーのある方に多くご利用いただいています。"},
+    {q:"チェックアウトは何時ですか？",a:"11:00です。延長をご希望の場合はフロントへご相談ください（1時間あたり1,100円）。"}
+  ],
+  meTitle:"わたしの条件",
+  meLead:"当てはまるものを選んでください。温泉分析書を読み取ったときに、この条件と照らし合わせてご説明します。",
+  meDisc:"※ 入力された内容はこの端末の中だけで使われ、外部には送信されません。医学的な判断はいたしません。",
+  saved:"件を登録中",
+  foot:"湯の音旅館（架空）／ 多言語温泉コンシェルジュ 営業デモ<br>掲示様式は温泉法第18条の掲示義務項目に準拠しています"
+},
+
+ko:{
+  name:"한국어", badge:"데모",
+  demoNote:"AI 응답은 샘플 고정입니다 (실제 앱은 실시간 생성)",
+  title:"유노오토 료칸", sub:"객실 QR로 안내해 드립니다 (가상의 시설입니다)",
+  homeLead:"어서 오세요. 온천에 관한 것, 관내에 관한 것 무엇이든 물어보세요. 한국어로 답해 드립니다.",
+  back:"뒤로",
+  nav:["홈","내 조건","관내 안내"],
+  tiles:[
+    {k:"scan",   ic:"♨",  t:"온천 성분표 읽기",  d:"입구 게시물 촬영 → 한국어 해설"},
+    {k:"tattoo", ic:"◆",  t:"문신 입욕 가능?",  d:"저희 시설의 방침을 확인하실 수 있습니다"},
+    {k:"manner", ic:"◇",  t:"입욕 매너",        d:"처음이신 분께 · 6단계"},
+    {k:"info",   ic:"○",  t:"관내 안내",        d:"식사 · 픽업 · 어메니티"}
+  ],
+  homeDisc:"※ 이 앱은 게시물의 번역·정리를 하는 것이며 의학적 진단이 아닙니다. 몸 상태가 걱정되시면 의사와 상담하세요.",
+  scanTitle:"온천 성분표 읽기",
+  scanLead:"목욕탕 입구에 붙어 있는 성분표입니다. 촬영하시면 등록하신 조건과 대조해서 설명해 드립니다.",
+  scanBtn:"이 게시물 읽기", scanAgain:"다시 읽기",
+  scanning:"성분표를 읽고 있습니다…",
+  scanSteps:["글자를 인식하고 있습니다","천질·적응증·금기증을 추출하고 있습니다","고객님의 조건과 대조하고 있습니다"],
+  resTitle:"읽기 결과",
+  lbl:{source:"원천명",quality:"천질(泉質)",temp:"원천 온도",ph:"pH",yield:"용출량",
+       ind:"적응증",con:"금기증",treat:"온천수 처리"},
+  treatLbl:{water:"가수(물 섞음)",heat:"가온",circ:"순환여과",disinfect:"소독"},
+  noCond:"조건이 등록되어 있지 않습니다. '내 조건'에서 등록하시면 고객님께 맞춘 주의사항을 알려 드립니다.",
+  goCond:"내 조건 등록하기",
+  vd:{
+    hbp:{t:"고혈압이 있으신 분께",d:"이 온천의 금기증에 직접적인 기재는 없습니다만, 42℃ 이상 고온에서 오래 계시면 혈압이 급변할 수 있습니다. 미지근한 물에 10분 이내로, 자주 쉬어 가며 이용해 주세요."},
+    heart:{t:"심장 질환이 있으신 분께",d:"게시된 금기증에 '중증 심장병'이 적혀 있습니다. 입욕 가능 여부는 반드시 주치의에게 확인해 주세요. 저희가 판단해 드릴 수 없습니다."},
+    preg:{t:"임신 중이신 분께",d:"게시된 금기증에 '임신 중(특히 초기와 말기)'이 적혀 있습니다. 입욕 전 반드시 의사와 상담해 주세요."},
+    atopy:{t:"아토피·만성 피부병이 있으신 분께",d:"적응증에 '아토피성 피부염', '만성 피부병'이 적혀 있습니다. 다만 유황천은 자극이 강하므로 입욕 후에는 맑은 물로 헹구시고 보습을 권해 드립니다."},
+    diabetes:{t:"당뇨가 있으신 분께",d:"적응증에 '당뇨병'이 적혀 있습니다. 다만 발끝 감각이 둔하신 분은 화상에 주의해 주세요. 원천 58.2℃를 물로 희석해 온도를 맞추고 있습니다."},
+    sensitive:{t:"피부가 민감하신 분께",d:"게시된 금기증에 '피부·점막이 과민한 분'이 적혀 있습니다. 유황천은 자극이 강한 편입니다. 짧게 시작하시고 이상을 느끼면 바로 나와 주세요."},
+    tattoo:{t:"문신이 있으신 분께",d:"저희 시설은 조건부로 입욕 가능합니다. 자세한 내용은 '문신 입욕 가능?'을 봐 주세요."},
+    baby:{t:"자녀와 함께 오신 분께",d:"유황천은 자극이 강하므로 만 1세 미만 영아의 입욕은 삼가 주세요. 1세 이상 어린이는 짧게, 반드시 보호자와 함께 이용해 주세요."}
+  },
+  okNone:{t:"특별히 주의하실 점은 없습니다",d:"등록하신 조건 중 이 온천의 금기증과 겹치는 것은 없었습니다. 다만 입욕 전후 수분 보충과 오래 담그지 않는 것은 누구에게나 권해 드립니다."},
+  condNames:{hbp:"고혈압",heart:"심장 질환",preg:"임신 중",tattoo:"문신이 있음",
+             atopy:"아토피·피부병",diabetes:"당뇨",baby:"영유아 동반",sensitive:"피부가 민감"},
+  tattooTitle:"문신에 대하여",
+  tattooLead:"저희 시설의 방침은 다음과 같습니다.",
+  tattooCond:{t:"조건부로 입욕하실 수 있습니다",
+    d:"커버 스티커({s} 이내)를 붙이시면 대욕장을 이용하실 수 있습니다. 스티커는 프런트에서 무료로 드립니다."},
+  tattooAlt:{t:"가시키리부로(전세탕)도 이용하실 수 있습니다",
+    d:"크기나 개수 때문에 스티커가 어려우시면 전세탕({p})을 이용해 주세요. 문신 유무와 관계없이 예약하실 수 있습니다."},
+  tattooNote:"일본에서 문신 입욕 가능 여부는 시설마다 다릅니다. 다른 시설을 이용하실 때는 반드시 사전에 확인해 주세요.",
+  mannerTitle:"입욕 매너",
+  manner:[
+    {b:"탈의실에서 모두 벗습니다",s:"수영복·속옷 착용은 불가합니다. 귀중품은 사물함에."},
+    {b:"카케유(몸에 물 끼얹기)",s:"탕에 들어가기 전 바가지로 발끝부터 순서대로 물을 끼얹습니다."},
+    {b:"몸을 씻고 나서 탕으로",s:"세면장에서 먼저 몸과 머리를 씻습니다. 비누는 완전히 헹궈 주세요."},
+    {b:"수건은 탕에 넣지 않습니다",s:"머리 위에 올리거나 탕 가장자리에 둡니다."},
+    {b:"탕 안에서는 조용히",s:"헤엄치기·잠수·큰 소리는 삼가 주세요."},
+    {b:"나오기 전 몸을 닦습니다",s:"탈의실이 젖지 않도록 가볍게 닦고 나와 주세요."}
+  ],
+  ngTitle:"자주 하는 실수",
+  ng:["수건을 탕에 담근다","몸을 안 씻고 탕에 들어간다","세면장에서 샤워를 남에게 향하게 한다","젖은 채로 탈의실에 들어간다"],
+  infoTitle:"관내 안내",
+  infoLead:"자주 받는 질문을 정리했습니다. 다른 질문은 음성으로도 받습니다.",
+  qa:[
+    {q:"조식은 몇 시부터인가요?",a:"7:00〜9:30 (최종 입장 9:00), 2층 '야마부키노마'에서 준비해 드립니다. 일식 정식과 양식 중에서 고르실 수 있습니다."},
+    {q:"대욕장은 몇 시까지 이용 가능한가요?",a:"5:00〜10:00 / 15:00〜24:00 입니다. 24:00〜익일 5:00은 청소로 폐쇄합니다. 심야에는 객실 욕실을 이용해 주세요."},
+    {q:"역에서 픽업이 있나요?",a:"가장 가까운 역에서 무료 셔틀버스가 있습니다. 도착 30분 전에 프런트(내선 0)로 연락해 주세요. 막차는 21:00입니다."},
+    {q:"알레르기 대응이 가능한가요?",a:"전날까지 연락 주시면 대응해 드립니다. 메밀·갑각류·유제품·달걀은 대체 메뉴를 준비할 수 있습니다."},
+    {q:"전세탕 예약 방법은?",a:"프런트에서 당일 선착순으로 접수합니다. 45분간 무료입니다. 가족 단위나 문신이 있으신 분들이 많이 이용하십니다."},
+    {q:"체크아웃은 몇 시인가요?",a:"11:00입니다. 연장을 원하시면 프런트로 문의해 주세요 (1시간당 1,100엔)."}
+  ],
+  meTitle:"내 조건",
+  meLead:"해당되는 것을 선택해 주세요. 온천 성분표를 읽을 때 이 조건과 대조해서 설명해 드립니다.",
+  meDisc:"※ 입력하신 내용은 이 기기 안에서만 사용되며 외부로 전송되지 않습니다. 의학적 판단은 하지 않습니다.",
+  saved:"개 등록 중",
+  foot:"유노오토 료칸(가상) / 다국어 온천 컨시어지 영업 데모<br>게시 양식은 온천법 제18조 게시의무 항목에 준거합니다"
+},
+
+en:{
+  name:"English", badge:"DEMO",
+  demoNote:"AI responses are fixed samples (the real app generates live)",
+  title:"Yunooto Ryokan", sub:"Guided from your room's QR code (fictional property)",
+  homeLead:"Welcome. Ask us anything about the baths or the inn — we'll answer in your language.",
+  back:"Back",
+  nav:["Home","My conditions","Inn info"],
+  tiles:[
+    {k:"scan",   ic:"♨",  t:"Read the spring analysis", d:"Photograph the posted notice → plain English"},
+    {k:"tattoo", ic:"◆",  t:"Tattoos allowed?",         d:"Check this property's policy"},
+    {k:"manner", ic:"◇",  t:"Bathing etiquette",        d:"For first-timers · 6 steps"},
+    {k:"info",   ic:"○",  t:"Inn information",          d:"Meals · shuttle · amenities"}
+  ],
+  homeDisc:"※ This app translates and organises the posted notice. It is not a medical diagnosis. If you have health concerns, please consult a doctor.",
+  scanTitle:"Read the spring analysis",
+  scanLead:"This is the analysis notice posted at the bath entrance. Photograph it and we'll explain it against the conditions you registered.",
+  scanBtn:"Read this notice", scanAgain:"Scan again",
+  scanning:"Reading the notice…",
+  scanSteps:["Recognising the characters","Extracting spring type, indications, contraindications","Cross-checking against your conditions"],
+  resTitle:"Result",
+  lbl:{source:"Source",quality:"Spring type",temp:"Temperature",ph:"pH",yield:"Flow rate",
+       ind:"Indications",con:"Contraindications",treat:"Water treatment"},
+  treatLbl:{water:"Diluted",heat:"Heated",circ:"Recirculated",disinfect:"Disinfected"},
+  noCond:"No conditions registered. Add them under \"My conditions\" and we'll tailor the warnings to you.",
+  goCond:"Register my conditions",
+  vd:{
+    hbp:{t:"If you have high blood pressure",d:"There is no direct mention in this spring's contraindications, but long soaks above 42°C can cause sudden blood-pressure changes. Keep the water cooler, stay under 10 minutes, and rest often."},
+    heart:{t:"If you have a heart condition",d:"The posted contraindications list \"serious heart disease\". Please confirm with your own doctor whether you may bathe. We cannot make that judgement for you."},
+    preg:{t:"If you are pregnant",d:"The posted contraindications list \"pregnancy (especially early and late)\". Please consult your doctor before bathing."},
+    atopy:{t:"If you have atopic or chronic skin conditions",d:"The indications list \"atopic dermatitis\" and \"chronic skin disease\". However, sulphur springs are strong — rinse with fresh water afterwards and moisturise."},
+    diabetes:{t:"If you have diabetes",d:"The indications list \"diabetes\". If you have reduced sensation in your feet, take care against scalding. The 58.2°C source water is diluted to bathing temperature."},
+    sensitive:{t:"If your skin is sensitive",d:"The posted contraindications list \"persons with sensitive skin or mucous membranes\". Sulphur springs are on the strong side. Start with a short soak and get out if anything feels wrong."},
+    tattoo:{t:"If you have a tattoo",d:"This property allows bathing under certain conditions. See \"Tattoos allowed?\" for details."},
+    baby:{t:"If you are with children",d:"Sulphur springs are strong, so please avoid bathing infants under 1 year. Children over 1 should bathe briefly and always with a guardian."}
+  },
+  okNone:{t:"Nothing specific to flag",d:"None of your registered conditions overlap with this spring's contraindications. That said, hydrate before and after, and avoid very long soaks — that goes for everyone."},
+  condNames:{hbp:"High blood pressure",heart:"Heart condition",preg:"Pregnant",tattoo:"I have a tattoo",
+             atopy:"Atopic / skin condition",diabetes:"Diabetes",baby:"With an infant",sensitive:"Sensitive skin"},
+  tattooTitle:"About tattoos",
+  tattooLead:"This property's policy is as follows.",
+  tattooCond:{t:"Bathing is permitted with conditions",
+    d:"If you cover the tattoo with a patch (up to {s}), you may use the main baths. Patches are provided free at the front desk."},
+  tattooAlt:{t:"A private bath is also available",
+    d:"If a patch isn't practical because of size or number, please use the private bath ({p}). It can be reserved by anyone, tattooed or not."},
+  tattooNote:"In Japan, tattoo policy differs from property to property. Always check in advance when visiting somewhere else.",
+  mannerTitle:"Bathing etiquette",
+  manner:[
+    {b:"Undress completely in the changing room",s:"Swimwear and underwear are not permitted. Use the lockers for valuables."},
+    {b:"Rinse yourself first (kakeyu)",s:"Before entering the tub, ladle water over yourself starting from your feet."},
+    {b:"Wash before entering the tub",s:"Wash your body and hair at the washing station. Rinse off all soap."},
+    {b:"Keep your towel out of the water",s:"Rest it on your head or on the edge of the tub."},
+    {b:"Stay quiet in the tub",s:"No swimming, diving, or loud conversation."},
+    {b:"Dry off before leaving",s:"Towel down lightly so the changing room stays dry."}
+  ],
+  ngTitle:"Common mistakes",
+  ng:["Putting your towel in the water","Getting in without washing first","Aiming the shower at other people","Walking into the changing room soaking wet"],
+  infoTitle:"Inn information",
+  infoLead:"The questions we're asked most. You can also ask anything else by voice.",
+  qa:[
+    {q:"What time is breakfast?",a:"7:00–9:30 (last entry 9:00) in the Yamabuki room on the 2nd floor. Choose between a Japanese set meal and a Western breakfast."},
+    {q:"When are the main baths open?",a:"5:00–10:00 and 15:00–24:00. They close 24:00–5:00 for cleaning. Please use your room's bath late at night."},
+    {q:"Is there a shuttle from the station?",a:"Yes, a free shuttle runs from the nearest station. Call the front desk (extension 0) 30 minutes before you arrive. The last run is at 21:00."},
+    {q:"Can you accommodate allergies?",a:"Yes, if you let us know by the day before. We can substitute for buckwheat, shellfish, dairy and eggs."},
+    {q:"How do I book the private bath?",a:"At the front desk, first-come first-served on the day. 45 minutes, free of charge. Popular with families and guests with tattoos."},
+    {q:"What time is check-out?",a:"11:00. Ask the front desk about a late check-out (¥1,100 per hour)."}
+  ],
+  meTitle:"My conditions",
+  meLead:"Select anything that applies. When you scan a spring analysis, we'll check it against these.",
+  meDisc:"※ What you enter stays on this device and is never sent anywhere. We do not make medical judgements.",
+  saved:"registered",
+  foot:"Yunooto Ryokan (fictional) / Multilingual onsen concierge — sales demo<br>Notice format follows the posting requirements of Hot Springs Act Art. 18"
+},
+
+zh:{
+  name:"繁體中文", badge:"示範版",
+  demoNote:"AI 回覆為固定範例（實際應用為即時生成）",
+  title:"湯之音旅館", sub:"由客房 QR code 引導（虛構設施）",
+  homeLead:"歡迎光臨。關於溫泉、關於館內，任何問題都歡迎詢問，我們會以您的母語回答。",
+  back:"返回",
+  nav:["首頁","我的狀況","館內指南"],
+  tiles:[
+    {k:"scan",   ic:"♨",  t:"閱讀溫泉分析書", d:"拍攝入口告示 → 中文解說"},
+    {k:"tattoo", ic:"◆",  t:"可以有刺青嗎？", d:"確認本館的規定"},
+    {k:"manner", ic:"◇",  t:"入浴禮儀",       d:"給第一次的您 · 6 步驟"},
+    {k:"info",   ic:"○",  t:"館內指南",       d:"餐飲 · 接送 · 備品"}
+  ],
+  homeDisc:"※ 本應用程式為告示內容的翻譯與整理，並非醫學診斷。若身體狀況有疑慮，請諮詢醫師。",
+  scanTitle:"閱讀溫泉分析書",
+  scanLead:"這是張貼在浴場入口的分析書。拍攝後，我們會對照您登錄的狀況為您說明。",
+  scanBtn:"讀取這張告示", scanAgain:"重新讀取",
+  scanning:"正在讀取分析書…",
+  scanSteps:["正在辨識文字","正在擷取泉質、適應症、禁忌症","正在對照您的狀況"],
+  resTitle:"讀取結果",
+  lbl:{source:"源泉名",quality:"泉質",temp:"泉溫",ph:"pH",yield:"湧出量",
+       ind:"適應症",con:"禁忌症",treat:"溫泉處理"},
+  treatLbl:{water:"加水",heat:"加溫",circ:"循環過濾",disinfect:"消毒"},
+  noCond:"尚未登錄狀況。請至「我的狀況」登錄，我們會為您提供合適的注意事項。",
+  goCond:"登錄我的狀況",
+  vd:{
+    hbp:{t:"給有高血壓的您",d:"本溫泉的禁忌症未直接記載，但在 42℃ 以上長時間浸泡可能造成血壓急遽變化。請以溫水、10 分鐘以內為限，並經常休息。"},
+    heart:{t:"給有心臟疾病的您",d:"告示的禁忌症記載有「嚴重心臟病」。是否可以入浴請務必向主治醫師確認，本館無法為您判斷。"},
+    preg:{t:"給懷孕中的您",d:"告示的禁忌症記載有「懷孕中（特別是初期與末期）」。入浴前請務必諮詢醫師。"},
+    atopy:{t:"給有異位性皮膚炎、慢性皮膚病的您",d:"適應症記載有「異位性皮膚炎」「慢性皮膚病」。但硫磺泉刺激較強，入浴後建議以清水沖洗並做好保濕。"},
+    diabetes:{t:"給有糖尿病的您",d:"適應症記載有「糖尿病」。但若足部感覺較遲鈍，請注意避免燙傷。源泉 58.2℃ 已加水調整溫度。"},
+    sensitive:{t:"給皮膚敏感的您",d:"告示的禁忌症記載有「皮膚、黏膜過敏者」。硫磺泉刺激偏強，請從短時間開始，若感到不適請立即起身。"},
+    tattoo:{t:"給有刺青的您",d:"本館為條件式開放入浴。詳情請見「可以有刺青嗎？」。"},
+    baby:{t:"給攜帶孩童的您",d:"硫磺泉刺激較強，未滿 1 歲的嬰兒請勿入浴。1 歲以上的孩童請短時間入浴，並務必由監護人陪同。"}
+  },
+  okNone:{t:"沒有特別需要注意的事項",d:"您登錄的狀況中，沒有與本溫泉禁忌症重疊的項目。不過入浴前後補充水分、避免長時間浸泡，是對任何人都適用的建議。"},
+  condNames:{hbp:"高血壓",heart:"心臟疾病",preg:"懷孕中",tattoo:"有刺青",
+             atopy:"異位性皮膚炎",diabetes:"糖尿病",baby:"攜帶嬰幼兒",sensitive:"皮膚敏感"},
+  tattooTitle:"關於刺青",
+  tattooLead:"本館的規定如下。",
+  tattooCond:{t:"符合條件即可入浴",
+    d:"若以遮蓋貼片（{s} 以內）覆蓋，即可使用大浴場。貼片可於櫃檯免費索取。"},
+  tattooAlt:{t:"也可使用包租湯屋",
+    d:"若因尺寸或數量難以使用貼片，請利用包租湯屋（{p}）。不論有無刺青皆可預約。"},
+  tattooNote:"在日本，刺青可否入浴依各設施而異。前往其他設施時，請務必事先確認。",
+  mannerTitle:"入浴禮儀",
+  manner:[
+    {b:"在更衣室全部脫下",s:"不可穿著泳衣或內衣。貴重物品請放置於置物櫃。"},
+    {b:"先淋湯（かけ湯）",s:"進入浴池前，用木桶從腳邊開始依序淋水。"},
+    {b:"洗淨身體後再入浴",s:"先在淋浴區洗淨身體與頭髮，肥皂請完全沖乾淨。"},
+    {b:"毛巾不可放入浴池",s:"請放在頭上或浴池邊緣。"},
+    {b:"池中請保持安靜",s:"請勿游泳、潛水或大聲交談。"},
+    {b:"起身前先擦乾身體",s:"為避免更衣室濕滑，請稍微擦乾後再出來。"}
+  ],
+  ngTitle:"常見的錯誤",
+  ng:["把毛巾放進浴池","沒洗身體就進浴池","在淋浴區將蓮蓬頭對著他人","濕淋淋地走回更衣室"],
+  infoTitle:"館內指南",
+  infoLead:"整理了最常收到的提問。其他問題也可以用語音詢問。",
+  qa:[
+    {q:"早餐從幾點開始？",a:"7:00〜9:30（最後入場 9:00），於 2 樓「山吹之間」供應。可從日式定食與西式早餐中選擇。"},
+    {q:"大浴場開放到幾點？",a:"5:00〜10:00 / 15:00〜24:00。24:00〜隔日 5:00 因清掃關閉。深夜請使用客房內的浴室。"},
+    {q:"車站有接送嗎？",a:"從最近的車站有免費接駁車。請於抵達 30 分鐘前聯絡櫃檯（分機 0）。末班為 21:00。"},
+    {q:"可以對應過敏嗎？",a:"請於前一日之前告知，我們會為您處理。蕎麥、甲殼類、乳製品、蛋皆可準備替代菜色。"},
+    {q:"包租湯屋如何預約？",a:"於櫃檯當日先到先得，45 分鐘、免費。家庭客與有刺青的旅客使用者眾。"},
+    {q:"退房時間是幾點？",a:"11:00。若需延長請洽櫃檯（每小時 1,100 日圓）。"}
+  ],
+  meTitle:"我的狀況",
+  meLead:"請選擇符合的項目。讀取溫泉分析書時，我們會對照這些狀況為您說明。",
+  meDisc:"※ 您輸入的內容僅在本機使用，不會傳送至外部。我們不做醫學判斷。",
+  saved:"項已登錄",
+  foot:"湯之音旅館（虛構）／ 多語言溫泉管家 營業示範<br>告示格式依溫泉法第 18 條之揭示義務項目"
+}
+};
+
+/* ============================================================
+   状態
+   ============================================================ */
+let lang = "ja";
+let picked = new Set();
+let scanned = false;
+
+const $  = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+const T  = ()=> I18N[lang];
+const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---- 言語ボタン ---- */
+function buildLangs(){
+  $("#langs").innerHTML = Object.keys(I18N).map(k=>
+    `<button class="lang" data-lang="${k}" aria-pressed="${k===lang}">${esc(I18N[k].name)}</button>`
+  ).join("");
+}
+
+/* ---- 画面遷移 ---- */
+function go(id){
+  $$(".screen").forEach(s=>s.classList.toggle("on", s.id==="s-"+id));
+  $$("#nav button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.go===id));
+  window.scrollTo({top:0,behavior:"instant"});
+}
+
+/* ---- 分析書ボード ---- */
+function renderBoard(){
+  const t=T();
+  $("#board").innerHTML =
+    `<div class="bt">温泉分析書</div>
+     <dl>
+       <dt>源泉名</dt><dd>${esc(BOARD.source)}</dd>
+       <dt>泉質</dt><dd>${esc(BOARD.quality)}</dd>
+       <dt>泉温</dt><dd>${esc(BOARD.temp)}／pH ${esc(BOARD.ph)}</dd>
+       <dt>適応症</dt><dd>${esc(BOARD.indications.join("、"))}</dd>
+       <dt>禁忌症</dt><dd>${esc(BOARD.contra.join("、"))}</dd>
+       <dt>処理</dt><dd>加水${esc(BOARD.treatment.water)}／加温${esc(BOARD.treatment.heat)}／循環${esc(BOARD.treatment.circ)}／消毒${esc(BOARD.treatment.disinfect)}</dd>
+     </dl>
+     <div class="note">${esc(BOARD.date)}　温泉法第18条に基づく掲示</div>`;
+}
+
+/* ---- 読み取り（デモ：固定サンプルを段階表示）---- */
+function runScan(){
+  const t=T(), btn=$("#btnScan"), wrap=$("#scanwrap");
+  if(btn.disabled) return;          // 実行中の二度押しだけを弾く
+  scanned = false;                  // 何度でも読み直せる（営業で繰り返し見せるため）
+  $("#scanResult").innerHTML = "";
+  btn.disabled = true; btn.style.opacity=".5";
+  wrap.insertAdjacentHTML("beforeend",'<div class="scanline" id="sl"></div>');
+
+  let i = 0;
+  const tick = ()=>{
+    if(i < t.scanSteps.length){
+      $("#scanStatus").innerHTML =
+        `<div class="status"><span class="dot"></span><span>${esc(t.scanSteps[i])}</span></div>`;
+      i++; setTimeout(tick, 850);
+    } else {
+      const sl=$("#sl"); if(sl) sl.remove();
+      $("#scanStatus").innerHTML="";
+      btn.disabled=false; btn.style.opacity="1";
+      btn.textContent = t.scanAgain;
+      scanned = true;
+      renderResult();
+      // smooth は環境によって効かないことがあるため即時スクロールにする
+      $("#scanResult").scrollIntoView({block:"start"});
+    }
+  };
+  tick();
+}
+
+/* ---- 読み取り結果 + 条件照合 ---- */
+function renderResult(){
+  const t=T(), L=t.lbl, TL=t.treatLbl, t2=BOARD.treatment;
+
+  const verdicts = [];
+  CONDITIONS.forEach(c=>{ if(picked.has(c.id) && t.vd[c.id]) verdicts.push({id:c.id, ...t.vd[c.id]}); });
+
+  const severe = new Set(["heart","preg"]);
+  const good   = new Set(["atopy","diabetes"]);
+  const vHtml = verdicts.length
+    ? verdicts.map(v=>{
+        const cls = severe.has(v.id) ? "v-warn" : good.has(v.id) ? "v-ok" : "v-info";
+        const ic  = severe.has(v.id) ? "!" : good.has(v.id) ? "✓" : "·";
+        return `<div class="verdict ${cls}"><div class="vi">${ic}</div>
+                <div><p class="vt">${esc(v.t)}</p><p class="vd">${esc(v.d)}</p></div></div>`;
+      }).join("")
+    : (picked.size
+        ? `<div class="verdict v-ok"><div class="vi">✓</div><div>
+             <p class="vt">${esc(t.okNone.t)}</p><p class="vd">${esc(t.okNone.d)}</p></div></div>`
+        : `<div class="verdict v-info"><div class="vi">·</div><div>
+             <p class="vd">${esc(t.noCond)}</p></div></div>
+           <button class="btn btn-ghost" data-go="me">${esc(t.goCond)}</button>`);
+
+  $("#scanResult").innerHTML =
+    `<div class="card">
+      <h2>${esc(t.resTitle)}</h2>
+      <dl class="kv">
+        <dt>${esc(L.source)}</dt><dd>${esc(BOARD.source)}</dd>
+        <dt>${esc(L.quality)}</dt><dd>${esc(tr(BOARD.quality))}${orig(BOARD.quality)}</dd>
+        <dt>${esc(L.temp)}</dt><dd>${esc(BOARD.temp)}</dd>
+        <dt>${esc(L.ph)}</dt><dd>${esc(BOARD.ph)}</dd>
+        <dt>${esc(L.yield)}</dt><dd>${esc(tr(BOARD.yield))}</dd>
+      </dl>
+      <h3>${esc(L.ind)}</h3>
+      <div class="chips">${BOARD.indications.map(x=>`<span class="chip ok">${esc(tr(x))}</span>`).join("")}</div>
+      <h3>${esc(L.con)}</h3>
+      <div class="chips">${BOARD.contra.map(x=>`<span class="chip warn">${esc(tr(x))}</span>`).join("")}</div>
+      <h3>${esc(L.treat)}</h3>
+      <div class="chips">
+        <span class="chip">${esc(TL.water)}：${esc(tr(t2.water))}</span>
+        <span class="chip">${esc(TL.heat)}：${esc(tr(t2.heat))}</span>
+        <span class="chip">${esc(TL.circ)}：${esc(tr(t2.circ))}</span>
+        <span class="chip">${esc(TL.disinfect)}：${esc(tr(t2.disinfect))}</span>
+      </div>
+    </div>
+    <div class="card">${vHtml}</div>
+    <div class="disc">${esc(t.homeDisc)}</div>`;
+}
+
+/* ---- タトゥー ---- */
+function renderTattoo(){
+  const t=T();
+  $("#tattooBody").innerHTML =
+    `<div class="card">
+       <h2>${esc(t.tattooTitle)}</h2>
+       <p class="lead" style="margin-bottom:14px">${esc(t.tattooLead)}</p>
+       <div class="verdict v-ok"><div class="vi">✓</div><div>
+         <p class="vt">${esc(t.tattooCond.t)}</p>
+         <p class="vd">${esc(t.tattooCond.d.replace("{s}", TATTOO.coverSize))}</p></div></div>
+       <div class="verdict v-info"><div class="vi">·</div><div>
+         <p class="vt">${esc(t.tattooAlt.t)}</p>
+         <p class="vd">${esc(t.tattooAlt.d.replace("{p}", TATTOO.privateBath))}</p></div></div>
+     </div>
+     <div class="disc">${esc(t.tattooNote)}</div>`;
+}
+
+/* ---- マナー ---- */
+function renderManner(){
+  const t=T();
+  $("#mannerSteps").innerHTML = t.manner.map(m=>
+    `<li><b>${esc(m.b)}</b><span>${esc(m.s)}</span></li>`).join("");
+  $("#mannerNg").innerHTML =
+    `<div class="card"><h2>${esc(t.ngTitle)}</h2>
+       <div class="chips">${t.ng.map(x=>`<span class="chip warn">${esc(x)}</span>`).join("")}</div>
+     </div>`;
+}
+
+/* ---- 館内案内 ---- */
+function renderInfo(){
+  const t=T();
+  $("#infoQa").innerHTML = t.qa.map(x=>
+    `<details class="qa"><summary>${esc(x.q)}</summary><div class="ans">${esc(x.a)}</div></details>`).join("");
+}
+
+/* ---- 条件 ---- */
+function renderConds(){
+  const t=T();
+  $("#conds").innerHTML = CONDITIONS.map(c=>
+    `<button class="cond" data-cond="${c.id}" aria-pressed="${picked.has(c.id)}">${esc(t.condNames[c.id])}</button>`
+  ).join("");
+}
+
+/* ---- 全描画 ---- */
+function render(){
+  const t=T();
+  document.documentElement.lang = lang;
+  document.title = t.title + " — " + (lang==="ja"?"多言語コンシェルジュ（デモ）":"Onsen Concierge (demo)");
+
+  $("#demoBadge").textContent = t.badge;
+  $("#demoNote").textContent  = t.demoNote;
+  $("#hTitle").textContent    = t.title;
+  $("#hSub").textContent      = t.sub;
+  $("#homeLead").textContent  = t.homeLead;
+  $("#homeDisc").textContent  = t.homeDisc;
+
+  $$("[data-t]").forEach(el=>{ const v=t[el.dataset.t]; if(typeof v==="string") el.textContent=v; });
+  if(scanned) $("#btnScan").textContent = t.scanAgain;
+
+  $("#tiles").innerHTML = t.tiles.map(x=>
+    `<button class="tile" data-go="${x.k}">
+       <span class="ic">${x.ic}</span>
+       <span class="t">${esc(x.t)}</span>
+       <span class="d">${esc(x.d)}</span>
+     </button>`).join("");
+
+  $("#nav").innerHTML =
+    [["home","⌂"],["me","◎"],["info","○"]].map(([k,ic],i)=>
+      `<button data-go="${k}" aria-pressed="${false}">
+         <span class="ni">${ic}</span><span>${esc(t.nav[i])}</span></button>`).join("");
+
+  $("#foot").innerHTML = t.foot;
+
+  renderBoard(); renderTattoo(); renderManner(); renderInfo(); renderConds();
+  if(scanned) renderResult(); else $("#scanResult").innerHTML="";
+
+  const cur = ($$(".screen").find(s=>s.classList.contains("on"))||{id:"s-home"}).id.slice(2);
+  $$("#nav button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.go===cur));
+}
+
+/* ---- イベント（委譲）---- */
+document.addEventListener("click", e=>{
+  const lg = e.target.closest("[data-lang]");
+  if(lg){ lang = lg.dataset.lang; buildLangs(); render(); return; }
+
+  const g = e.target.closest("[data-go]");
+  if(g){ go(g.dataset.go); return; }
+
+  const c = e.target.closest("[data-cond]");
+  if(c){
+    const id=c.dataset.cond;
+    picked.has(id) ? picked.delete(id) : picked.add(id);
+    c.setAttribute("aria-pressed", picked.has(id));
+    if(scanned) renderResult();
+    return;
+  }
+
+  if(e.target.closest("#btnScan")){ runScan(); }
+});
+
+buildLangs();
+render();
+go("home");
+</script>
+</body>
+</html>
